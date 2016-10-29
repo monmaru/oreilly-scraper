@@ -3,18 +3,33 @@
 
 from urllib.request import urlopen
 from bs4 import BeautifulSoup
+import csv
 
 
-def main():
-    html = urlopen("https://www.oreilly.co.jp/ebook/")
-    bs = BeautifulSoup(html, "html.parser")
+def scrape():
+    # noinspection PyBroadException
+    try:
+        html = urlopen('https://www.oreilly.co.jp/ebook/')
+        bs = BeautifulSoup(html, 'html.parser')
+        table = bs.find('table', {'id': 'bookTable'})
+        body = [parse_tr(tr) for tr in table.tbody.findAll('tr')]
 
-    book_table = bs.find("table", {"id": "bookTable"})
+        with open('eBooks.csv', 'w', encoding='utf-8') as f:
+            w = csv.writer(f)
+            w.writerow(['ISBN', 'タイトル', '価格', '発行月', 'フォーマット'])
+            w.writerows(body)
+    except:
+        import traceback
+        traceback.print_exc()
 
-    print(book_table.thead.tr)
 
-    for tr in book_table.tbody.findAll("tr"):
-        print(tr)
+def parse_tr(tr):
+    isbn = tr.find('td', {'class': 'isbn'}).string
+    title = tr.find('td', {'class': 'title'}).find('a').string
+    price = tr.find('td', {'class': 'price'}).string
+    month = tr.find('td', {'class': None}).string
+    form = ' | '.join([img.attrs['title'] for img in tr.findAll('img')])
+    return [isbn, title, price, month, form]
 
 if __name__ == '__main__':
-    main()
+    scrape()
